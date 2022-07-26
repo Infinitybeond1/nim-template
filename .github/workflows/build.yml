@@ -1,0 +1,35 @@
+name: Build
+
+on:
+  - push
+  - pull_request
+
+variables:
+- name: name
+  value: projName 
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, windows, darwin]
+        arch: [386, amd64, arm64]
+        exclude:  
+          - arch: "386"
+            os: darwin 
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install nim
+        uses: iffy/install-nim@v4.1.3
+      - name: Build
+        run: |
+          nimble install -d -y
+          nimble build -d:release
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ variables.name }}-${{ matrix.os }}-${{ matrix.arch }}
+          path: src/${{ variables.name }}

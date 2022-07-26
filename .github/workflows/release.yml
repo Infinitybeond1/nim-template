@@ -1,0 +1,43 @@
+name: Build
+
+on:
+  workflow_dispatch: 
+  release: 
+    types: [released]
+
+variables:
+- name: name
+  value: projName 
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, windows, darwin]
+        arch: [386, amd64, arm64]
+        exclude:  
+          - arch: "386"
+            os: darwin 
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install nim
+        uses: iffy/install-nim@v4.1.3
+      - name: Build
+        run: |
+          nimble install -d -y
+          nimble build -d:release
+          mkdir ${{ variables.name }}-${{ matrix.os }}-${{ matrix.arch }}
+          cp ${{ variables.name }} ${{ variables.name }}-${{ matrix.os }}-${{ matrix.arch }}/
+      - uses: montudor/action-zip@v1
+        with:
+          args: zip -qq -r ${{ variables.name }}-${{ matrix.os }}-${{ matrix.arch }}.zip ${{ variables.name }}-${{ matrix.os }}-${{ matrix.arch }}/${{ variables.name }}
+      - name: Release
+        uses: alexellis/upload-assets@0.2.2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          asset_paths: '["*-*-*.zip"]'
